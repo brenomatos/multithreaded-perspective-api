@@ -1,6 +1,7 @@
 import pandas as pd
 import nltk
 import time
+import os
 from os import listdir, wait
 from os.path import isfile, join
 import re
@@ -10,22 +11,27 @@ from googleapiclient import discovery
 import json
 from retrying import retry
 import logging
+import logging
 
 class PerspectiveRequests():
-    def __init__(self, dataframe_path, text_field, api_key_path ,n_threads=10):
+    def __init__(self, dataframe_path, text_field, text_id_field, api_key_path ,n_threads=10):
         """
         dataframe_path: path to the dataframe used
         text_field: field within the dataframe to be analyzed by perspective
+        text_id_field: crucial to retrieve which comment is which after running requests
         n_threads: number of threads
         """
         self._path = dataframe_path
         self._text_field = text_field
+        self._text_id_field = text_id_field
+        self._formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
         self.n_threads = n_threads
         self.api_key_path = api_key_path
         self.api_key = open(api_key_path, "r").read()
 
         self.df = pd.read_csv(self._path,lineterminator='\n')
-        self.df = self.df.sample(100)
+        self.df = self.df.sample(1000)
         print('Number of rows:', len(self.df))
         self.df.dropna(subset = [text_field], inplace=True)
         print("Number of rows after dropping NaN rows:", len(self.df))
@@ -69,20 +75,41 @@ class PerspectiveRequests():
         ]
         return sub_lists
     
-    def _loop_requests(self, text_list, thread_id, client,sleep_time=0.4):
+    def _loop_requests(self, text_list, thread_id, logger, client,sleep_time=0.4):
         """
-        helper to loop requests over each list of text
+        helper to loop requests over each list of text. To avoid dealing with race conditions, we'll save each threads'
+        results in separate files. We can simply append them after we're done
         """
         for text in text_list:
-            self.toxicity_request(text, thread_id, client, sleep_time=sleep_time)
+            attributes = self.toxicity_request(text, thread_id, client=client, logger=logger,sleep_time=sleep_time)
+            
+            if not os.path.exists("results"):
+                os.mkdir("results")
+            
+            with open("results/thread-"+str(thread_id)+".jsonl", "a+") as f:
+                attributes["comment_id"] = text[1]
+                f.write(json.dumps(attributes)+"\n")
 
+    def setup_logger(self, name, log_file, level=logging.INFO):
+        """To setup as many loggers as you want"""
+
+        handler = logging.FileHandler(log_file)        
+        handler.setFormatter(self._formatter)
+
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        logger.addHandler(handler)
+
+        return logger
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20000, stop_max_attempt_number=10)
-    def toxicity_request(self, text, thread_id, client,sleep_time=0.4):
+    def toxicity_request(self, text, thread_id, client,logger,sleep_time=0.4):
         """
         text: text to be submitted to Perspective
         thread_id: thread id for debugging/logging purposes
         client: each thread must have a different client
+
+        We add the retry decorator to decrease error rate
         """
         text_id = text[1]
         text = text[0]
@@ -117,6 +144,7 @@ class PerspectiveRequests():
             print("Thread",thread_id,":",attributes["TOXICITY"], "text_id-correct:",text_id)
             return attributes
         except Exception as e:
+            logger.error("text_id-"+str(text_id)+"-"+str(e))
             print("text_id:",text_id,e)
             raise IOError("text_id:",text_id,e)
 
@@ -127,14 +155,19 @@ class PerspectiveRequests():
         """
         texts_list = []
         for index, row in self.df.iterrows():
-            texts_list.append((row["comment_text"], row["comment_id"]))
+            texts_list.append((row[self._text_field], row[self._text_id_field]))
 
         sliced_texts_list = self._slice_list(texts_list,self.n_threads)
         threads = []
         for thread_count in range(self.n_threads):
             # one client for each thread. Otherwise we'll get errors
             client = self.threads_create_client()
-            thread = threading.Thread(target=self._loop_requests, args=(sliced_texts_list[thread_count],thread_count,client))
+
+            if not os.path.exists("results"):
+                os.mkdir("results")
+            logger = self.setup_logger('logger-thread-'+str(thread_count), 'results/thread-'+str(thread_count)+'-logfile.log')
+
+            thread = threading.Thread(target=self._loop_requests, args=(sliced_texts_list[thread_count],thread_count,logger, client))
             thread.start()
             threads.append(thread)
 
@@ -142,7 +175,5 @@ class PerspectiveRequests():
             thread.join()
 
 
-pp = PerspectiveRequests("/data/Downloads/comments.csv","comment_text", "api_key", n_threads=10)
-# pp.preprocess_text(overwrite=True)
-# pp.retrieve_features()
+pp = PerspectiveRequests("/data/Downloads/comments.csv","comment_text", "comment_id" , "api_key", n_threads=10)
 pp.threaded_requests()
