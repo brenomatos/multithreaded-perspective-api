@@ -31,7 +31,6 @@ class PerspectiveRequests():
         self.api_key = open(api_key_path, "r").read()
 
         self.df = pd.read_csv(self._path,lineterminator='\n')
-        self.df = self.df.sample(1000)
         print('Number of rows:', len(self.df))
         self.df.dropna(subset = [text_field], inplace=True)
         print("Number of rows after dropping NaN rows:", len(self.df))
@@ -103,7 +102,7 @@ class PerspectiveRequests():
         return logger
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20000, stop_max_attempt_number=10)
-    def toxicity_request(self, text, thread_id, client,logger,sleep_time=0.4):
+    def toxicity_request(self, text, thread_id, client,logger,sleep_time=0.4, print_result=False):
         """
         text: text to be submitted to Perspective
         thread_id: thread id for debugging/logging purposes
@@ -141,7 +140,8 @@ class PerspectiveRequests():
             attributes["INSULT"] = response["attributeScores"]["INSULT"]["summaryScore"]["value"]
             attributes["PROFANITY"] = response["attributeScores"]["PROFANITY"]["summaryScore"]["value"]
             attributes["THREAT"] = response["attributeScores"]["THREAT"]["summaryScore"]["value"]
-            print("Thread",thread_id,":",attributes["TOXICITY"], "text_id-correct:",text_id)
+            if(print_result):
+                print("Thread",thread_id,":",attributes["TOXICITY"], "text_id-correct:",text_id)
             return attributes
         except Exception as e:
             logger.error("text_id-"+str(text_id)+"-"+str(e))
