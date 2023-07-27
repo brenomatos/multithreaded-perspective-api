@@ -33,11 +33,11 @@ def retry_missing_cases(base_dataframe_path, text_field, text_id_field, results_
         print("No more instances to run!")
 
 
-def main(dataframe_path, text_field, text_id_field, api_key_path, inital_requests=True):
+def main(dataframe_path, text_field, text_id_field, api_key_path, inital_requests_bool=True):
     """
     Enable the parameter to make initial requests and disable it if you just want to correct missing instances
     """
-    if(inital_requests):
+    if(inital_requests_bool):
         inital_requests(dataframe_path, text_field, text_id_field, api_key_path, n_threads=N_THREADS)
     retry_missing_cases(dataframe_path, text_field, text_id_field)
 
@@ -48,4 +48,4 @@ def main(dataframe_path, text_field, text_id_field, api_key_path, inital_request
 
 
 if(__name__ == "__main__"):
-    main("comments.csv","comment_text", "comment_id" , "api_key", inital_requests=True)
+    main("/data/Downloads/comments.csv","comment_text", "comment_id" , "api_key", inital_requests=True)
