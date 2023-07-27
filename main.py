@@ -48,4 +48,4 @@ def main(dataframe_path, text_field, text_id_field, api_key_path, inital_request
 
 
 if(__name__ == "__main__"):
-    main("comments.csv","comment_text", "comment_id" , "api_key", inital_requests=False)
+    main("comments.csv","comment_text", "comment_id" , "api_key", inital_requests=True)
