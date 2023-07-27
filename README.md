@@ -15,8 +15,14 @@ This module works on generic text dataframes; all you need is a dataframe with t
 - text_field_id: unique id that identifies each text entry
 
 These fields must be specified as parameters when using one of our two modules:
-- PerspectiveRequests: standard code to run multithreaded requests
-- ParseResults: parsing options for results, including generating a dataframe of cases that returned erros, which can then be used to perform additional rounds of requests
+- PerspectiveRequests: standard code to run multithreaded requests. Main class has the following parameters: 
+    - dataframe_path: path to dataframe containing text_field and text_field_id
+    - text_field: column name with text to be sumitted to the API
+    - text_id_field: column name with unique Id for each dataframe instance
+    - api_key_path: a file containing you API key (and nothing else)
+    - n_threads: number of threads to be used
+- ParseResults: parsing options for results, including generating a dataframe of cases that returned erros, which can then be used to perform additional rounds of requests. Main class has similar parameters, with the addition of:
+    - results_path: path to a folder containing the results. Defaults to 'results/'
 
 Both modules have documented methods and should be easy to use. We also added a ```main.py``` script with an example on how to run the pipeline
 
