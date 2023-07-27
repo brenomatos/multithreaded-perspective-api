@@ -17,10 +17,12 @@ class ParseResults():
         self.base_dataframe = pd.read_csv(self.base_dataframe_path,lineterminator="\n")
         print("Length of base dataframe:", len(self.base_dataframe))
 
-    def concat_results(self):
+    def concat_results(self, save_df = True):
         """
         Concatenates all results into a single dataframe. In this case, I opted
         to iterate with readlines because pd.read_json(,lines=True) returned errors
+        
+        save_df: wheter or not to save the dataframe in the current folder
         """
         results = os.listdir(self.results_path)
         results = [x for x in results if x.endswith(".jsonl")]
@@ -33,6 +35,9 @@ class ParseResults():
                     data = json.loads(line)
                     records.append(data)
         self.perspective_df = pd.DataFrame.from_records(records)
+        
+        if(save_df):
+            self.perspective_df.to_csv("perspective_df.csv",index=False)
         print("Number of corretly processed entries:", len(self.perspective_df))
 
     def find_missing_ids(self):
@@ -56,10 +61,3 @@ class ParseResults():
         """
         retry_df = self.base_dataframe[self.base_dataframe[self.text_id_field].isin(missing_ids)]
         return retry_df
-
-pr = ParseResults("comments.csv","comment_text", "comment_id")
-pr.concat_results()
-missing_ids = pr.find_missing_ids()
-print(len(missing_ids))
-generate_retry_dataframe = pr.generate_retry_dataframe(missing_ids)
-print(generate_retry_dataframe.head())

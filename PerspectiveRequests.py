@@ -68,10 +68,15 @@ class PerspectiveRequests():
 
         returns a list of lists
         """
-        sub_lists = [
-            list_to_slice[i * (len(list_to_slice) // num_sub_lists):(i + 1) * (len(list_to_slice) // num_sub_lists)]
-            for i in range(num_sub_lists)
-        ]
+        if(num_sub_lists > len(list_to_slice)):
+            # if we want more sublists than the entire lenght of the list, we default to returning a sliced list with the size of list_to_slice
+            sub_lists = [[x] for x in list_to_slice]
+        else:
+            sub_lists = [
+                list_to_slice[i * (len(list_to_slice) // num_sub_lists):(i + 1) * (len(list_to_slice) // num_sub_lists)]
+                for i in range(num_sub_lists)
+            ]
+
         return sub_lists
     
     def _loop_requests(self, text_list, thread_id, logger, client,sleep_time=0.4):
@@ -159,7 +164,10 @@ class PerspectiveRequests():
 
         sliced_texts_list = self._slice_list(texts_list,self.n_threads)
         threads = []
-        for thread_count in range(self.n_threads):
+
+        loop_range = min(self.n_threads, len(sliced_texts_list)) # this avoids errors when we have less data to process than number of threads
+        
+        for thread_count in range(loop_range):
             # one client for each thread. Otherwise we'll get errors
             client = self.threads_create_client()
 
@@ -173,7 +181,3 @@ class PerspectiveRequests():
 
         for thread in threads:
             thread.join()
-
-
-# pp = PerspectiveRequests("/data/Downloads/comments.csv","comment_text", "comment_id" , "api_key", n_threads=10)
-# pp.threaded_requests()
