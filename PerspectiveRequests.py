@@ -61,23 +61,25 @@ class PerspectiveRequests():
             static_discovery=False,
         )
 
-    def _slice_list(self, list_to_slice, num_sub_lists):
-        """
-        list_to_slice: list to slice
-        num_sub_lists: number of lists after the slice
+    def _slice_list(self, list_to_slice, num_sublists):
+    """Slices a list into a parametrized amount of sublists.
+    Args:
+        list_to_slice: The list to slice.
+        num_sublists: The number of sublists to slice the list into.
 
-        returns a list of lists
-        """
-        if(num_sub_lists > len(list_to_slice)):
-            # if we want more sublists than the entire lenght of the list, we default to returning a sliced list with the size of list_to_slice
-            sub_lists = [[x] for x in list_to_slice]
-        else:
-            sub_lists = [
-                list_to_slice[i * (len(list_to_slice) // num_sub_lists):(i + 1) * (len(list_to_slice) // num_sub_lists)]
-                for i in range(num_sub_lists)
-            ]
+    Returns:
+        A list of sublists.
+    """
+    sublists = []
+    for i in range(num_sublists):
+        start_index = i * len(list_to_slice) // num_sublists
+        end_index = (i + 1) * len(list_to_slice) // num_sublists
+        sublists.append(list_to_slice[start_index:end_index])
+    remaining_elements = list_to_slice[end_index:]
+    sublists[-1].extend(remaining_elements)
+    sublists = [x for x in sublists if len(x)] # removing empyt sublists
+    return sublists
 
-        return sub_lists
     
     def _loop_requests(self, text_list, thread_id, logger, client,sleep_time=0.4):
         """
