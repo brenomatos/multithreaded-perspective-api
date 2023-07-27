@@ -62,23 +62,23 @@ class PerspectiveRequests():
         )
 
     def _slice_list(self, list_to_slice, num_sublists):
-    """Slices a list into a parametrized amount of sublists.
-    Args:
-        list_to_slice: The list to slice.
-        num_sublists: The number of sublists to slice the list into.
+        """Slices a list into a parametrized amount of sublists.
+        Args:
+            list_to_slice: The list to slice.
+            num_sublists: The number of sublists to slice the list into.
 
-    Returns:
-        A list of sublists.
-    """
-    sublists = []
-    for i in range(num_sublists):
-        start_index = i * len(list_to_slice) // num_sublists
-        end_index = (i + 1) * len(list_to_slice) // num_sublists
-        sublists.append(list_to_slice[start_index:end_index])
-    remaining_elements = list_to_slice[end_index:]
-    sublists[-1].extend(remaining_elements)
-    sublists = [x for x in sublists if len(x)] # removing empyt sublists
-    return sublists
+        Returns:
+            A list of sublists.
+        """
+        sublists = []
+        for i in range(num_sublists):
+            start_index = i * len(list_to_slice) // num_sublists
+            end_index = (i + 1) * len(list_to_slice) // num_sublists
+            sublists.append(list_to_slice[start_index:end_index])
+        remaining_elements = list_to_slice[end_index:]
+        sublists[-1].extend(remaining_elements)
+        sublists = [x for x in sublists if len(x)] # removing empyt sublists
+        return sublists
 
     
     def _loop_requests(self, text_list, thread_id, logger, client,sleep_time=0.4):
@@ -166,9 +166,12 @@ class PerspectiveRequests():
 
         sliced_texts_list = self._slice_list(texts_list,self.n_threads)
         threads = []
-
         loop_range = min(self.n_threads, len(sliced_texts_list)) # this avoids errors when we have less data to process than number of threads
         
+        for i in range(loop_range):
+            # this displays the amount of entries per thread, just to check if everything is running correctly
+            print("Thread",i,":",len(sliced_texts_list[i]),"entries")
+
         for thread_count in range(loop_range):
             # one client for each thread. Otherwise we'll get errors
             client = self.threads_create_client()
